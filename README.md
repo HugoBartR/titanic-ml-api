@@ -2,7 +2,7 @@
 
 A machine learning API that predicts passenger survival on the Titanic using a Random Forest classifier.
 
-## 🚀 Features
+## Features
 
 - **Binary Classification**: Predicts survival (1) or death (0) for Titanic passengers
 - **RESTful API**: FastAPI-based API with automatic documentation
@@ -11,7 +11,7 @@ A machine learning API that predicts passenger survival on the Titanic using a R
 - **CI/CD Pipeline**: GitHub Actions for automated testing and deployment
 - **Health Checks**: Built-in monitoring and health endpoints
 
-## 📊 Model Performance
+## Model Performance
 
 - **Accuracy**: 77.62%
 - **Precision**: 72.22%
@@ -19,14 +19,14 @@ A machine learning API that predicts passenger survival on the Titanic using a R
 - **F1-Score**: 70.91%
 - **ROC-AUC**: 79.56%
 
-## 🛠️ Quick Start
+## Quick Start
 
 ### Local Development
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repo-url>
-   cd ML
+   git clone https://github.com/HugoBartR/titanic-ml-api.git
+   cd titanic-ml-api
    ```
 
 2. **Create virtual environment**
@@ -72,7 +72,7 @@ A machine learning API that predicts passenger survival on the Titanic using a R
    docker run -p 8000:8000 titanic-api
    ```
 
-## 📋 API Endpoints
+## API Endpoints
 
 ### Health Check
 ```http
@@ -124,7 +124,7 @@ Content-Type: application/json
 GET /metrics
 ```
 
-## 🔧 CI/CD Pipeline
+## CI/CD Pipeline
 
 The project includes a GitHub Actions workflow that:
 
@@ -141,7 +141,7 @@ The project includes a GitHub Actions workflow that:
 - `DOCKER_USERNAME`: Your Docker Hub username
 - `DOCKER_PASSWORD`: Your Docker Hub password/token
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run all tests
@@ -154,7 +154,7 @@ pytest tests/ --cov=api --cov-report=html
 pytest tests/test_predict.py -v
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ML/
@@ -174,7 +174,7 @@ ML/
 └── download_data.py      # Data download script
 ```
 
-## 🔍 Model Features
+## Model Features
 
 The model uses the following features:
 - **Passenger Class** (1st, 2nd, 3rd)
@@ -185,7 +185,7 @@ The model uses the following features:
 - **Fare** (Ticket price)
 - **Embarked** (Port of embarkation)
 
-## 📈 Monitoring
+## Monitoring
 
 The API includes built-in monitoring:
 - Request/response logging
@@ -193,7 +193,7 @@ The API includes built-in monitoring:
 - Health checks
 - Error tracking
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -201,11 +201,11 @@ The API includes built-in monitoring:
 4. Add tests
 5. Submit a pull request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
 
-## 🆘 Support
+## Support
 
 For issues and questions:
 - Create an issue on GitHub
