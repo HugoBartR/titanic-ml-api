@@ -201,6 +201,12 @@ The confusion matrix below shows the performance of the classifier on the valida
 
 This matrix provides a detailed breakdown of true positives, true negatives, false positives, and false negatives, helping to better understand the model's strengths and weaknesses.
 
+### Confusion Matrix Interpretation
+
+The confusion matrix shows that the model correctly identifies most survivors and non-survivors. However, there are slightly more false negatives than false positives, meaning the model is more likely to miss a survivor than to incorrectly predict survival for a non-survivor. In the Titanic context, this means the model is somewhat conservative, prioritizing the identification of non-survivors.
+
+This trade-off may be acceptable depending on the business goal: if the priority is to minimize the risk of missing survivors, further tuning or adjusting the classification threshold could be considered.
+
 ## Contributing
 
 1. Fork the repository
