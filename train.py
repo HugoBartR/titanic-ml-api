@@ -81,7 +81,8 @@ class TitanicPipeline:
             colsample_bytree=0.8,
             random_state=42,
             n_jobs=-1,
-            eval_metric='logloss'
+            eval_metric='logloss',
+            enable_categorical=False
         )
 
         self.lr_model = LogisticRegression(

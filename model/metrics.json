@@ -69,29 +69,29 @@
     "FareBin_3": 0.013841661011137941
   },
   "training_info": {
-    "timestamp": 1752525738.503057,
+    "timestamp": 1752526758.8806436,
     "memory_usage": [
       {
         "stage": "data_loading",
-        "memory_mb": 172.8125,
-        "timestamp": 1752525736.7032554
+        "memory_mb": 172.14453125,
+        "timestamp": 1752526757.1321518
       },
       {
         "stage": "preprocessing",
-        "memory_mb": 173.66796875,
-        "timestamp": 1752525736.7070575
+        "memory_mb": 172.96484375,
+        "timestamp": 1752526757.1357656
       },
       {
         "stage": "training",
-        "memory_mb": 174.78515625,
-        "timestamp": 1752525736.7254684
+        "memory_mb": 174.13671875,
+        "timestamp": 1752526757.154138
       },
       {
         "stage": "saving",
-        "memory_mb": 279.6796875,
-        "timestamp": 1752525738.384875
+        "memory_mb": 279.98046875,
+        "timestamp": 1752526758.767208
       }
     ],
-    "total_time": 1.7998573780059814
+    "total_time": 1.7485504150390625
   }
 }
