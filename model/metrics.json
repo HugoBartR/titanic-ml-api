@@ -23,29 +23,29 @@
     "Class_3": 0.054838892070952557
   },
   "training_info": {
-    "timestamp": 1752516521.9107351,
+    "timestamp": 1752523743.683385,
     "memory_usage": [
       {
         "stage": "data_loading",
-        "memory_mb": 144.55859375,
-        "timestamp": 1752516520.980214
+        "memory_mb": 167.84375,
+        "timestamp": 1752523742.7999902
       },
       {
         "stage": "preprocessing",
-        "memory_mb": 144.90234375,
-        "timestamp": 1752516520.984175
+        "memory_mb": 168.84765625,
+        "timestamp": 1752523742.811791
       },
       {
         "stage": "training",
-        "memory_mb": 145.48828125,
-        "timestamp": 1752516520.9892206
+        "memory_mb": 169.4140625,
+        "timestamp": 1752523742.8162508
       },
       {
         "stage": "saving",
-        "memory_mb": 150.9140625,
-        "timestamp": 1752516521.8839245
+        "memory_mb": 174.36328125,
+        "timestamp": 1752523743.657984
       }
     ],
-    "total_time": 0.9305799007415771
+    "total_time": 0.8834574222564697
   }
 }

@@ -27,6 +27,8 @@ from sklearn.metrics import (
 )
 from sklearn.preprocessing import StandardScaler
 import structlog
+import matplotlib.pyplot as plt
+from sklearn.metrics import ConfusionMatrixDisplay
 
 # Configure structured logging
 structlog.configure(
@@ -260,6 +262,17 @@ class TitanicPipeline:
 
         logger.info("Metrics saved", metrics_file=str(metrics_file))
 
+    def save_confusion_matrix(self, y_true, y_pred):
+        """Save confusion matrix as PNG image."""
+        cm = confusion_matrix(y_true, y_pred)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+        disp.plot(cmap=plt.cm.Blues)
+        plt.title("Confusion Matrix")
+        plt.savefig(self.model_path / "confusion_matrix.png")
+        plt.close()
+        logger.info("Confusion matrix saved", file=str(
+            self.model_path / "confusion_matrix.png"))
+
     def print_summary(self, results: Dict[str, Any]) -> None:
         """Print a summary of the training results."""
         metrics = results['metrics']
@@ -313,6 +326,8 @@ class TitanicPipeline:
             self.log_memory_usage("saving")
             self.save_model()
             self.save_metrics(results)
+            # Save confusion matrix
+            self.save_confusion_matrix(results['y_test'], results['y_pred'])
 
             # Print summary
             self.print_summary(results)

@@ -193,6 +193,14 @@ The API includes built-in monitoring:
 - Health checks
 - Error tracking
 
+## Confusion Matrix
+
+The confusion matrix below shows the performance of the classifier on the validation set:
+
+![Confusion Matrix](model/confusion_matrix.png)
+
+This matrix provides a detailed breakdown of true positives, true negatives, false positives, and false negatives, helping to better understand the model's strengths and weaknesses.
+
 ## Contributing
 
 1. Fork the repository
