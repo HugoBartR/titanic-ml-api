@@ -20,7 +20,8 @@ import pandas as pd
 import psutil
 import joblib
 from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
     roc_auc_score, classification_report, confusion_matrix
@@ -29,6 +30,7 @@ from sklearn.preprocessing import StandardScaler
 import structlog
 import matplotlib.pyplot as plt
 from sklearn.metrics import ConfusionMatrixDisplay
+import xgboost as xgb
 
 # Configure structured logging
 structlog.configure(
@@ -62,11 +64,40 @@ class TitanicPipeline:
 
         # Initialize components
         self.scaler = StandardScaler()
-        self.model = RandomForestClassifier(
+
+        # Create individual models
+        self.rf_model = RandomForestClassifier(
             n_estimators=100,
             max_depth=10,
             random_state=42,
             n_jobs=-1
+        )
+
+        self.xgb_model = xgb.XGBClassifier(
+            n_estimators=100,
+            max_depth=6,
+            learning_rate=0.1,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            random_state=42,
+            n_jobs=-1,
+            eval_metric='logloss'
+        )
+
+        self.lr_model = LogisticRegression(
+            random_state=42,
+            max_iter=1000,
+            class_weight='balanced'
+        )
+
+        # Create VotingClassifier ensemble
+        self.model = VotingClassifier(
+            estimators=[
+                ('rf', self.rf_model),
+                ('xgb', self.xgb_model),
+                ('lr', self.lr_model)
+            ],
+            voting='soft'  # Use probabilities for voting
         )
 
         # Performance tracking
@@ -120,41 +151,93 @@ class TitanicPipeline:
         return df
 
     def preprocess_data(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
-        """Preprocess the data for training."""
-        logger.info("Starting data preprocessing")
+        """Preprocess the data for training with advanced feature engineering."""
+        logger.info("Starting advanced data preprocessing")
 
         # Create a copy to avoid modifying original data
         data = df.copy()
 
-        # Handle missing values
+        # ===== FEATURE ENGINEERING =====
+        # 1. Extract title from Name
+        data['Title'] = data['Name'].str.extract(
+            r' ([A-Za-z]+)\.', expand=False)
+        # Agrupar títulos raros
+        title_mapping = {
+            'Mr': 'Mr',
+            'Miss': 'Miss',
+            'Mrs': 'Mrs',
+            'Master': 'Master',
+            'Dr': 'Rare', 'Rev': 'Rare', 'Col': 'Rare', 'Major': 'Rare',
+            'Mlle': 'Miss', 'Countess': 'Rare', 'Ms': 'Miss', 'Lady': 'Rare',
+            'Jonkheer': 'Rare', 'Don': 'Rare', 'Mme': 'Mrs', 'Capt': 'Rare', 'Sir': 'Rare'
+        }
+        data['Title'] = data['Title'].map(title_mapping).fillna('Rare')
+
+        # 2. Create age groups (bins)
+        data['AgeBin'] = pd.qcut(
+            data['Age'], 4, labels=False, duplicates='drop')
+        # 3. Create fare bins
+        data['FareBin'] = pd.qcut(
+            data['Fare'], 4, labels=False, duplicates='drop')
+        # 4. Age missing indicator
+        data['AgeMissing'] = data['Age'].isnull().astype(int)
+        # 5. HasCabin indicator
+        data['HasCabin'] = data['Cabin'].notnull().astype(int)
+        # 6. Ticket prefix
+        data['TicketPrefix'] = data['Ticket'].str.extract(
+            r'([A-Za-z]+)', expand=False).fillna('None')
+        # 7. Extract cabin letter (if Cabin is not null)
+        data['CabinLetter'] = data['Cabin'].str[0].fillna('Unknown')
+        # 8. Create IsAlone feature
+        data['IsAlone'] = ((data['SibSp'] + data['Parch']) == 0).astype(int)
+        # 9. Create family size feature
+        data['FamilySize'] = data['SibSp'] + data['Parch'] + 1
+        # 10. Create fare per person
+        data['FarePerPerson'] = data['Fare'] / data['FamilySize']
+
+        # ===== IMPROVED MISSING VALUE HANDLING =====
+        # Age: fill with median by title
+        title_age_median = data.groupby('Title')['Age'].median()
+        data['Age'] = data['Age'].fillna(data['Title'].map(title_age_median))
         data['Age'] = data['Age'].fillna(data['Age'].median())
+        # Embarked: fill with mode
         data['Embarked'] = data['Embarked'].fillna('S')
+        # Fare: fill with median by class
+        class_fare_median = data.groupby('Pclass')['Fare'].median()
+        data['Fare'] = data['Fare'].fillna(
+            data['Pclass'].map(class_fare_median))
         data['Fare'] = data['Fare'].fillna(data['Fare'].median())
+        # CabinLetter: fill unknown with 'Unknown'
+        data['CabinLetter'] = data['CabinLetter'].fillna('Unknown')
 
-        # Drop unnecessary columns
-        data = data.drop(['Name', 'Ticket', 'Cabin'], axis=1)
+        # ===== FEATURE SELECTION =====
+        columns_to_drop = ['Name', 'Ticket', 'Cabin']
+        data = data.drop(columns_to_drop, axis=1)
 
-        # Create dummy variables for categorical features
-        embark_dummies = pd.get_dummies(data['Embarked'], prefix='Embarked')
-        sex_dummies = pd.get_dummies(data['Sex'], prefix='Sex')
-        pclass_dummies = pd.get_dummies(data['Pclass'], prefix='Class')
+        # ===== ENCODING =====
+        categorical_features = ['Embarked', 'Sex', 'Pclass', 'Title',
+                                'AgeGroup', 'CabinLetter', 'TicketPrefix', 'AgeBin', 'FareBin']
+        dummy_dfs = []
+        for feature in categorical_features:
+            if feature in data.columns:
+                dummies = pd.get_dummies(data[feature], prefix=feature)
+                dummy_dfs.append(dummies)
+                data = data.drop(feature, axis=1)
+        if dummy_dfs:
+            data = data.join(dummy_dfs)
 
-        # Drop original categorical columns and join dummies
-        data = data.drop(['Embarked', 'Sex', 'Pclass'], axis=1)
-        data = data.join([embark_dummies, sex_dummies, pclass_dummies])
-
-        # Separate features and target
+        # ===== FEATURE SCALING PREPARATION =====
         X = data.drop('Survived', axis=1)
         y = data['Survived']
-
-        # Set PassengerId as index for consistency
         X.set_index('PassengerId', inplace=True)
-
-        logger.info("Data preprocessing completed",
+        logger.info("Advanced preprocessing completed",
                     features_shape=X.shape,
                     target_shape=y.shape,
-                    feature_names=list(X.columns))
-
+                    feature_names=list(X.columns),
+                    new_features_added=[
+                        'Title', 'AgeBin', 'FareBin', 'AgeMissing', 'HasCabin', 'TicketPrefix',
+                        'CabinLetter', 'IsAlone', 'FamilySize', 'FarePerPerson'
+                    ])
         return X, y
 
     def train_model(self, X: pd.DataFrame, y: pd.Series) -> Dict[str, Any]:
@@ -170,7 +253,12 @@ class TitanicPipeline:
         X_train_scaled = self.scaler.fit_transform(X_train)
         X_test_scaled = self.scaler.transform(X_test)
 
-        # Train model
+        # Train individual models first (for feature importance)
+        self.rf_model.fit(X_train_scaled, y_train)
+        self.xgb_model.fit(X_train_scaled, y_train)
+        self.lr_model.fit(X_train_scaled, y_train)
+
+        # Train ensemble model
         self.model.fit(X_train_scaled, y_train)
 
         # Store column names for later use
@@ -194,9 +282,17 @@ class TitanicPipeline:
         metrics['cv_mean'] = cv_scores.mean()
         metrics['cv_std'] = cv_scores.std()
 
-        # Feature importance
-        feature_importance = dict(
-            zip(X.columns, self.model.feature_importances_))
+        # Feature importance (average from RandomForest and XGBoost)
+        rf_importance = dict(
+            zip(X.columns, [float(imp) for imp in self.rf_model.feature_importances_]))
+        xgb_importance = dict(
+            zip(X.columns, [float(imp) for imp in self.xgb_model.feature_importances_]))
+
+        # Average the importances
+        feature_importance = {}
+        for feature in X.columns:
+            feature_importance[feature] = (
+                rf_importance[feature] + xgb_importance[feature]) / 2
 
         logger.info("Model training completed",
                     accuracy=metrics['accuracy'],
@@ -218,9 +314,18 @@ class TitanicPipeline:
         """Save the trained model and preprocessing components."""
         logger.info("Saving model and components")
 
-        # Save model
+        # Save ensemble model
         model_file = self.model_path / "model.pkl"
         joblib.dump(self.model, model_file)
+
+        # Save individual models for potential use
+        rf_file = self.model_path / "random_forest.pkl"
+        xgb_file = self.model_path / "xgboost.pkl"
+        lr_file = self.model_path / "logistic_regression.pkl"
+
+        joblib.dump(self.rf_model, rf_file)
+        joblib.dump(self.xgb_model, xgb_file)
+        joblib.dump(self.lr_model, lr_file)
 
         # Save scaler
         scaler_file = self.model_path / "scaler.pkl"
@@ -247,9 +352,14 @@ class TitanicPipeline:
         metrics_file = self.model_path / "metrics.json"
 
         # Prepare metrics for saving
+        # Convert float32 to float for JSON serialization
+        metrics = results['metrics'].copy()
+        feature_importance = {
+            k: float(v) for k, v in results['feature_importance'].items()}
+
         save_data = {
-            'metrics': results['metrics'],
-            'feature_importance': results['feature_importance'],
+            'metrics': metrics,
+            'feature_importance': feature_importance,
             'training_info': {
                 'timestamp': time.time(),
                 'memory_usage': self.memory_usage,

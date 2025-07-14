@@ -1,23 +1,26 @@
 # Titanic Survival Prediction API
 
-A machine learning API that predicts passenger survival on the Titanic using a Random Forest classifier.
+A machine learning API that predicts passenger survival on the Titanic using an **ensemble (VotingClassifier) of Random Forest, XGBoost, and Logistic Regression**.
 
 ## Features
 
 - **Binary Classification**: Predicts survival (1) or death (0) for Titanic passengers
 - **RESTful API**: FastAPI-based API with automatic documentation
 - **Model Training**: Automated training pipeline with cross-validation
+- **Ensemble Model**: Combines RandomForest, XGBoost, and LogisticRegression for higher accuracy
+- **Advanced Feature Engineering**: Includes binning, missing indicators, ticket/cabin parsing, and more
 - **Docker Support**: Containerized deployment
 - **CI/CD Pipeline**: GitHub Actions for automated testing and deployment
 - **Health Checks**: Built-in monitoring and health endpoints
 
-## Model Performance
+## Model Performance (Final Ensemble)
 
-- **Accuracy**: 77.62%
-- **Precision**: 72.22%
-- **Recall**: 69.64%
-- **F1-Score**: 70.91%
-- **ROC-AUC**: 79.56%
+- **Accuracy**: 79.72%
+- **Precision**: 75.47%
+- **Recall**: 71.43%
+- **F1-Score**: 73.39%
+- **ROC-AUC**: 81.44%
+- **CV Score**: 80.85%
 
 ## Quick Start
 
@@ -72,111 +75,9 @@ A machine learning API that predicts passenger survival on the Titanic using a R
    docker run -p 8000:8000 titanic-api
    ```
 
-## API Endpoints
+## Model Features (Final)
 
-### Health Check
-```http
-GET /health
-```
-
-### Single Prediction
-```http
-POST /predict
-Content-Type: application/json
-
-{
-  "passenger": {
-    "passenger_id": 1,
-    "pclass": 1,
-    "sex": "female",
-    "age": 29,
-    "sibsp": 0,
-    "parch": 0,
-    "fare": 211.3375,
-    "embarked": "S"
-  }
-}
-```
-
-### Batch Prediction
-```http
-POST /predict/batch
-Content-Type: application/json
-
-{
-  "passengers": [
-    {
-      "passenger_id": 1,
-      "pclass": 1,
-      "sex": "female",
-      "age": 29,
-      "sibsp": 0,
-      "parch": 0,
-      "fare": 211.3375,
-      "embarked": "S"
-    }
-  ]
-}
-```
-
-### Metrics
-```http
-GET /metrics
-```
-
-## CI/CD Pipeline
-
-The project includes a GitHub Actions workflow that:
-
-1. **Tests**: Runs pytest with coverage
-2. **Trains Model**: Downloads data and retrains the model
-3. **Builds Docker Image**: Creates optimized container
-4. **Deploys**: (Configure your deployment target)
-
-### Workflow Triggers
-- Push to `main` or `master` branch
-- Pull requests to `main` or `master` branch
-
-### Secrets Required
-- `DOCKER_USERNAME`: Your Docker Hub username
-- `DOCKER_PASSWORD`: Your Docker Hub password/token
-
-## Testing
-
-```bash
-# Run all tests
-pytest tests/
-
-# Run with coverage
-pytest tests/ --cov=api --cov-report=html
-
-# Run specific test file
-pytest tests/test_predict.py -v
-```
-
-## Project Structure
-
-```
-ML/
-├── api/                    # API application
-│   ├── app.py             # FastAPI application
-│   ├── schemas.py         # Pydantic models
-│   └── utils.py           # Model manager
-├── data/                  # Dataset files
-├── model/                 # Trained model artifacts
-├── tests/                 # Test files
-├── .github/workflows/     # CI/CD workflows
-├── Dockerfile.api         # API Docker image
-├── docker-compose.yml     # Local development
-├── requirements.txt       # Production dependencies
-├── requirements-dev.txt   # Development dependencies
-├── train.py              # Model training script
-└── download_data.py      # Data download script
-```
-
-## Model Features
-
-The model uses the following features:
+The model uses the following features (with advanced engineering):
 - **Passenger Class** (1st, 2nd, 3rd)
 - **Sex** (Male/Female)
 - **Age** (with missing value imputation)
@@ -184,6 +85,43 @@ The model uses the following features:
 - **Parch** (Number of parents/children)
 - **Fare** (Ticket price)
 - **Embarked** (Port of embarkation)
+- **Title** (extracted from Name, grouped)
+- **FamilySize** (SibSp + Parch + 1)
+- **IsAlone** (FamilySize == 1)
+- **FarePerPerson** (Fare / FamilySize)
+- **AgeBin** (binned Age)
+- **FareBin** (binned Fare)
+- **AgeMissing** (indicator if Age was missing)
+- **HasCabin** (indicator if Cabin present)
+- **CabinLetter** (first letter of Cabin)
+- **TicketPrefix** (prefix from Ticket)
+
+## Model Ensemble
+
+The final model is a **VotingClassifier** (soft voting) combining:
+- RandomForestClassifier
+- XGBoostClassifier
+- LogisticRegression
+
+This ensemble approach improved both accuracy and robustness, leveraging the strengths of each algorithm.
+
+## Model Performance (Detailed)
+
+| Metric      | Value   |
+|-------------|---------|
+| Accuracy    | 79.72%  |
+| Precision   | 75.47%  |
+| Recall      | 71.43%  |
+| F1-Score    | 73.39%  |
+| ROC-AUC     | 81.44%  |
+| CV Score    | 80.85%  |
+
+**Top 5 Most Important Features (ensemble average):**
+1. Sex_male
+2. Title_Mr
+3. Sex_female
+4. FarePerPerson
+5. Fare
 
 ## Monitoring
 
@@ -207,34 +145,18 @@ The confusion matrix shows that the model correctly identifies most survivors an
 
 This trade-off may be acceptable depending on the business goal: if the priority is to minimize the risk of missing survivors, further tuning or adjusting the classification threshold could be considered.
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-## Support
-
-For issues and questions:
-- Create an issue on GitHub
-- Check the API documentation at `/docs`
-- Review the test files for usage examples
-
----
-
 ## Conclusion
 
 ### Evaluation Metrics
-The model achieves an accuracy of **77.62%** and an F1-score of **70.91%** on the validation set. This indicates a solid baseline performance, outperforming random guessing and simple heuristics. However, there is room for improvement through advanced feature engineering and hyperparameter tuning. The model is suitable for an initial deployment, but further iterations could enhance its robustness and predictive power for production use.
+The final ensemble model achieves an accuracy of **79.72%** and an F1-score of **73.39%** on the validation set. This is a significant improvement over the baseline, thanks to advanced feature engineering and model ensembling. The model is robust and suitable for production deployment.
 
 ### Key Features
-The most important features identified by the model are:
+The most important features identified by the ensemble are:
 - **Sex**: Gender is the strongest predictor, as women historically had a higher survival rate.
+- **Title**: Extracted from Name, provides social status and gender cues.
+- **FarePerPerson**: Normalizes fare by family size, capturing socioeconomic status.
 - **Pclass**: Ticket class reflects access to lifeboats and resources.
 - **Fare** and **Age**: Indicate socioeconomic status and vulnerability.
-These insights were determined using the RandomForest feature importances.
 
 ### Production Deployment & MLOps
 For production, I recommend the following stack and best practices:

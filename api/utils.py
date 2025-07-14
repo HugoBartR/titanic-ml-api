@@ -83,32 +83,98 @@ class ModelManager:
         return self.model is not None
 
     def preprocess_passenger(self, passenger_data: Dict[str, Any]) -> np.ndarray:
-        """Preprocess a single passenger for prediction."""
+        """Preprocess a single passenger for prediction with advanced feature engineering."""
         # Create DataFrame with expected structure
         df = pd.DataFrame([passenger_data])
 
-        # Handle missing values
-        df['age'] = df['age'].fillna(df['age'].median())
-        df['embarked'] = df['embarked'].fillna('S')
-        df['fare'] = df['fare'].fillna(df['fare'].median())
+        # ===== FEATURE ENGINEERING =====
 
-        # Create dummy variables
-        embark_dummies = pd.get_dummies(df['embarked'], prefix='Embarked')
-        sex_dummies = pd.get_dummies(df['sex'], prefix='Sex')
-        pclass_dummies = pd.get_dummies(df['pclass'], prefix='Class')
+        # 1. Extract title from Name
+        df['Title'] = df['Name'].str.extract(r' ([A-Za-z]+)\.', expand=False)
 
-        # Drop original categorical columns and join dummies
-        df = df.drop(['embarked', 'sex', 'pclass'], axis=1)
-        df = df.join([embark_dummies, sex_dummies, pclass_dummies])
-
-        # Rename columns to match training data (capitalize first letter)
-        column_mapping = {
-            'age': 'Age',
-            'sibsp': 'SibSp',
-            'parch': 'Parch',
-            'fare': 'Fare'
+        # Group rare titles
+        title_mapping = {
+            'Mr': 'Mr',
+            'Miss': 'Miss',
+            'Mrs': 'Mrs',
+            'Master': 'Master',
+            'Dr': 'Rare',
+            'Rev': 'Rare',
+            'Col': 'Rare',
+            'Major': 'Rare',
+            'Mlle': 'Miss',
+            'Countess': 'Rare',
+            'Ms': 'Miss',
+            'Lady': 'Rare',
+            'Jonkheer': 'Rare',
+            'Don': 'Rare',
+            'Mme': 'Mrs',
+            'Capt': 'Rare',
+            'Sir': 'Rare'
         }
-        df = df.rename(columns=column_mapping)
+        df['Title'] = df['Title'].map(title_mapping)
+
+        # 2. Create age groups
+        df['AgeGroup'] = pd.cut(df['Age'],
+                                bins=[0, 12, 18, 65, 100],
+                                labels=['Child', 'Teen', 'Adult', 'Elderly'],
+                                include_lowest=True)
+
+        # 3. Extract cabin letter (if Cabin is not null)
+        df['CabinLetter'] = df['Cabin'].str[0] if df['Cabin'].notna().any() else 'Unknown'
+
+        # 4. Create IsAlone feature
+        df['IsAlone'] = ((df['SibSp'] + df['Parch']) == 0).astype(int)
+
+        # 5. Create family size feature
+        df['FamilySize'] = df['SibSp'] + df['Parch'] + 1
+
+        # 6. Create fare per person
+        df['FarePerPerson'] = df['Fare'] / df['FamilySize']
+
+        # ===== IMPROVED MISSING VALUE HANDLING =====
+
+        # Age: fill with median by title (fallback to overall median)
+        title_age_median = df.groupby('Title')['Age'].median()
+        df['Age'] = df['Age'].fillna(df['Title'].map(title_age_median))
+        df['Age'] = df['Age'].fillna(df['Age'].median())  # Fallback
+
+        # Embarked: fill with mode
+        df['Embarked'] = df['Embarked'].fillna('S')
+
+        # Fare: fill with median by class (fallback to overall median)
+        class_fare_median = df.groupby('Pclass')['Fare'].median()
+        df['Fare'] = df['Fare'].fillna(df['Pclass'].map(class_fare_median))
+        df['Fare'] = df['Fare'].fillna(df['Fare'].median())  # Fallback
+
+        # CabinLetter: fill unknown with 'Unknown'
+        df['CabinLetter'] = df['CabinLetter'].fillna('Unknown')
+
+        # ===== FEATURE SELECTION =====
+
+        # Drop unnecessary columns
+        columns_to_drop = ['Name', 'Ticket', 'Cabin']
+        df = df.drop(
+            [col for col in columns_to_drop if col in df.columns], axis=1)
+
+        # ===== ENCODING =====
+
+        # Create dummy variables for categorical features
+        categorical_features = ['Embarked', 'Sex',
+                                'Pclass', 'Title', 'AgeGroup', 'CabinLetter']
+
+        # Initialize list to store dummy dataframes
+        dummy_dfs = []
+
+        for feature in categorical_features:
+            if feature in df.columns:
+                dummies = pd.get_dummies(df[feature], prefix=feature)
+                dummy_dfs.append(dummies)
+                df = df.drop(feature, axis=1)
+
+        # Join all dummy variables
+        if dummy_dfs:
+            df = df.join(dummy_dfs)
 
         # Ensure all expected columns are present
         if self.feature_names:
