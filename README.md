@@ -210,4 +210,8 @@ This project is licensed under the MIT License.
 For issues and questions:
 - Create an issue on GitHub
 - Check the API documentation at `/docs`
-- Review the test files for usage examples 
+- Review the test files for usage examples
+
+---
+
+*Last updated: July 2024* 
