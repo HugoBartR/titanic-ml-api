@@ -201,10 +201,6 @@ The API includes built-in monitoring:
 4. Add tests
 5. Submit a pull request
 
-## License
-
-This project is licensed under the MIT License.
-
 ## Support
 
 For issues and questions:
@@ -214,4 +210,26 @@ For issues and questions:
 
 ---
 
-*Last updated: July 2024* 
+## Conclusion
+
+### Evaluation Metrics
+The model achieves an accuracy of **77.62%** and an F1-score of **70.91%** on the validation set. This indicates a solid baseline performance, outperforming random guessing and simple heuristics. However, there is room for improvement through advanced feature engineering and hyperparameter tuning. The model is suitable for an initial deployment, but further iterations could enhance its robustness and predictive power for production use.
+
+### Key Features
+The most important features identified by the model are:
+- **Sex**: Gender is the strongest predictor, as women historically had a higher survival rate.
+- **Pclass**: Ticket class reflects access to lifeboats and resources.
+- **Fare** and **Age**: Indicate socioeconomic status and vulnerability.
+These insights were determined using the RandomForest feature importances.
+
+### Production Deployment & MLOps
+For production, I recommend the following stack and best practices:
+- **Docker** for containerization and portability.
+- **FastAPI** to serve the model as a REST API.
+- **CI/CD** with GitHub Actions for automated testing, building, and deployment.
+- **Cloud**: Deploy on AWS ECS/Fargate, GCP Cloud Run, or Azure Container Apps for scalability and reliability.
+- **MLOps**: Use data/model versioning (DVC/MLflow), monitoring (Prometheus/Grafana/Sentry), alerting, and automated testing.
+- **Automation**: The entire pipeline (training, testing, building, deployment) is automated and reproducible.
+- **Scalability**: The system can scale horizontally using load balancers and orchestrators like Kubernetes if needed.
+
+This approach ensures a robust, maintainable, and production-ready ML system. 
