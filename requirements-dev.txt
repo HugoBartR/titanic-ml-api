@@ -1,7 +1,7 @@
 # Development dependencies for Titanic ML Challenge
 
 # Testing
-pytest==7.4.2
+pytest==8.4.1
 pytest-asyncio==0.21.1
 pytest-cov==4.1.0
 pytest-mock==3.11.1
