@@ -29,7 +29,7 @@ py-spy==0.3.14
 
 # Type Checking
 types-requests==2.31.0.10
-types-PyYAML==6.0.12.9
+types-PyYAML==6.0.12.20250516
 
 # Security
 # safety==2.3.5 
