@@ -221,7 +221,8 @@ class TitanicPipeline:
         dummy_dfs = []
         for feature in categorical_features:
             if feature in data.columns:
-                dummies = pd.get_dummies(data[feature], prefix=feature)
+                dummies = pd.get_dummies(
+                    data[feature], prefix=feature, drop_first=True)
                 dummy_dfs.append(dummies)
                 data = data.drop(feature, axis=1)
         if dummy_dfs:
